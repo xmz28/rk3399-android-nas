@@ -49,7 +49,7 @@ function Check-Sources {
     $manifest = Join-Path $Here 'SHA256SUMS.txt'
     if (-not (Test-Path -LiteralPath $manifest)) { throw 'Missing SHA256SUMS.txt' }
     $count = 0
-    foreach ($line in Get-Content -LiteralPath $manifest) {
+    foreach ($line in Get-Content -LiteralPath $manifest -Encoding UTF8) {
         if ($line -notmatch '^([0-9a-f]{64}) \*(.+)$') { throw 'Invalid source checksum manifest.' }
         $expected = $Matches[1]; $relative = $Matches[2]
         if ($relative -match '(^|[\\/])\.\.([\\/]|$)' -or [IO.Path]::IsPathRooted($relative)) { throw 'Invalid checksum path.' }
