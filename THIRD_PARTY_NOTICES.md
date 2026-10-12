@@ -1,6 +1,6 @@
 # 第三方依赖说明
 
-本仓库仅发布自有部署脚本、服务配置示例与文档，不包含第三方二进制、第三方源码或设备备份。MIT 许可仅适用于本仓库自有内容。
+本仓库仅发布自有部署脚本、配置、网页与文档，不包含第三方二进制、第三方源码或设备备份。MIT 许可仅适用于本仓库自有内容。
 
 | 依赖 | 作用 | 上游与许可参考 |
 | --- | --- | --- |
@@ -11,5 +11,9 @@
 | OpenSpeedTest | Android 测速服务 | [官方页面](https://openspeedtest.com/)、[HTML5 项目](https://github.com/openspeedtest/Speed-Test)；Android APK 的分发条款另行核对 |
 | dnsmasq | LAN DHCP | [官网](https://thekelleys.org.uk/dnsmasq/doc.html)，以使用版本附带许可为准 |
 | Android Platform Tools | Windows ADB | [官方下载与条款](https://developer.android.com/tools/releases/platform-tools) |
+| Nginx | 网页与代理 | [上游与许可](https://nginx.org/en/LICENSE) |
+| Avahi | mDNS 发现 | [上游](https://github.com/avahi/avahi)，以所用包的许可声明为准 |
+| iperf3 | 网络吞吐测试 | [上游](https://github.com/esnet/iperf)，以所用包的许可声明为准 |
+| Paramiko | SFTP 与密钥转换 | [上游](https://github.com/paramiko/paramiko)，以所用包的许可声明为准 |
 
 这些依赖由用户自行准备。未来若分发 APK、ADB 或包含 Linux 软件包的 rootfs，必须保留第三方声明，并依据对应版本的许可提供所需材料；本次没有审核或授权完整二进制包的再分发。

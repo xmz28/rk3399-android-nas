@@ -1,0 +1,10 @@
+#!/bin/sh
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Reject new SMB connections when vold has removed or replaced the source.
+uuid=$1
+case "$uuid" in ''|*[!A-Za-z0-9_-]*) exit 1 ;; esac
+[ -f "/run/nas-usb/$uuid" ] || exit 1
+mountpoint -q "/mnt/usb/$uuid" || exit 1
+source_dev=$(stat -c %d "/proc/1/root/mnt/media_rw/$uuid" 2>/dev/null) || exit 1
+target_dev=$(stat -c %d "/mnt/usb/$uuid" 2>/dev/null) || exit 1
+[ "$source_dev" = "$target_dev" ]

@@ -1,8 +1,12 @@
 # 安全说明
 
-此仓库是旧版实验脚本的源码发布，默认 admin/admin 为公开示例凭据；部署会重置相关设置。仅用于可信局域网，并在实际使用前修改各服务凭据。
+0.2.0 升级保留设备原账号，不将真实密码或密钥打包到仓库。legacy/v0.1.0/ 的 admin/admin 是历史示例，新升级入口不写入它。文件服务和控制服务使用独立凭据，仅用于可信局域网。
 
-Primitive FTPd 7.5 有已知导出组件授权问题，官方在 8.2 修复，见 [上游公告](https://github.com/wolpi/prim-ftpd/security/advisories/GHSA-j72x-x52h-247j)。本次没有更新依赖，也没有发布该 APK。
+旧 Primitive FTPd 7.5 有已知导出组件授权问题，官方在 8.2 修复，见 [上游公告](https://github.com/wolpi/prim-ftpd/security/advisories/GHSA-j72x-x52h-247j)。新版使用 Copyparty 的 FTP / SFTP 并关闭旧 App 自启，不发布该 APK。
+
+存储管理 API 由控制 App 认证；格式化检查 USB 卷身份和确认名称，会删除目标卷的数据。文件操作与格式化权限不同。升级包本身不会执行格式化。
+
+设备升级备份可能含私钥和账号信息，只保存在设备本地；请勿公开。自动恢复只覆盖安装器记录的配置和脚本，不是完整设备或数据恢复。
 
 请勿提交设备归档、私钥、Samba 账号数据库、Copyparty 会话、访问日志、个人密码或设备备份。.gitignore 是辅助措施，提交前仍应核对暂存文件。
 

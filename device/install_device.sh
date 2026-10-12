@@ -1,53 +1,73 @@
 #!/system/bin/sh
-set -e
-
-STAGE=/data/local/tmp/rk3399-deploy
+set -eu
+STAGE=${0%/*}
 ROOT=/data/local/alpine-nas
-BACKUP=/data/local/alpine-nas.previous
 BASE=/data/local/rk3399-nas
+sh "$STAGE/preflight.sh"
 
-[ "$(id -u)" = 0 ] || { echo "ERROR: root required"; exit 10; }
-[ -f "$STAGE/alpine-nas-ready.tar" ] || { echo "ERROR: payload missing"; exit 11; }
-case "$(getprop ro.product.cpu.abi)" in arm64-v8a|aarch64) ;; *) echo "ERROR: ARM64 required"; exit 12;; esac
-
-mkdir -p /data/media/0/NAS "$BASE/scripts"
-
-stop nas_services 2>/dev/null || true
-stop ethernet_role 2>/dev/null || true
-stop openspeedtest_guard 2>/dev/null || true
-for PID in $(pidof smbd dnsmasq 2>/dev/null); do kill "$PID" 2>/dev/null || true; done
-for PROC in /proc/[0-9]*; do
-    [ -r "$PROC/cmdline" ] || continue
-    CMD=$(tr '\000' ' ' < "$PROC/cmdline" 2>/dev/null)
-    case "$CMD" in
-        *copyparty-sfx.py*|*rk3399-nas/scripts/nas_services.sh*|*rk3399-nas/scripts/ethernet_role.sh*|*rk3399-nas/scripts/openspeedtest_guard.sh*)
-            kill "${PROC#/proc/}" 2>/dev/null || true ;;
-    esac
+PY_FILES='prepare-nas.py nas-volumes.py nas-mount-private.py nas-open-files.py nas-speedtest-relay.py nas-storage.py'
+SH_FILES='nas_services.sh nas_usb.sh nas-usb-eject.sh'
+for file in $PY_FILES $SH_FILES smb.conf nas-portal-nginx.conf nas-portal.html nas-storage.html usb-share-ready install_boot.sh service-control.sh rollback.sh; do
+    [ -s "$STAGE/$file" ] || { echo "ERROR: missing staged source $file"; exit 20; }
 done
-sleep 1
+for file in $SH_FILES; do sh -n "$STAGE/$file"; done
+chroot "$ROOT" /usr/bin/python3 -c 'import ast, pathlib; [ast.parse(pathlib.Path(p).read_text()) for p in __import__("sys").argv[1:]]' \
+    $(for file in $PY_FILES; do echo "/proc/1/root$STAGE/$file"; done)
 
-for M in "$ROOT/mnt/nas" "$ROOT/dev/pts" "$ROOT/dev" "$ROOT/sys" "$ROOT/proc"; do
-    umount "$M" 2>/dev/null || true
+BACKUP="$BASE/backups/upgrade-$(date +%Y%m%d-%H%M%S)-$$"
+mkdir -p "$BACKUP" "$BASE/scripts" "$ROOT/opt/nas-portal" "$ROOT/etc/nas-ssh" "$ROOT/var/log/nginx"
+chmod 700 "$BACKUP" "$ROOT/etc/nas-ssh"
+: > "$BACKUP/manifest"
+count=0
+backup_file() {
+    count=$((count + 1))
+    if [ -f "$1" ]; then
+        cp -p "$1" "$BACKUP/$count"
+        printf 'present|%s|%s\n' "$1" "$count" >> "$BACKUP/manifest"
+    else
+        printf 'absent|%s|%s\n' "$1" "$count" >> "$BACKUP/manifest"
+    fi
+}
+for file in $PY_FILES; do backup_file "$ROOT/opt/$file"; done
+for file in $SH_FILES ethernet_role.sh openspeedtest_guard.sh; do
+    backup_file "$BASE/scripts/$file"
+    backup_file "/system/bin/$file"
 done
-
-if [ -e "$BACKUP" ]; then
-    [ "$BACKUP" = /data/local/alpine-nas.previous ] || exit 13
-    rm -rf "$BACKUP"
-fi
-if [ -d "$ROOT" ]; then mv "$ROOT" "$BACKUP"; fi
-mkdir -p "$ROOT"
-if ! tar -xf "$STAGE/alpine-nas-ready.tar" -C "$ROOT"; then
-    rm -rf "$ROOT"
-    [ -d "$BACKUP" ] && mv "$BACKUP" "$ROOT"
-    echo "ERROR: rootfs extraction failed"
-    exit 14
-fi
-
-cp "$STAGE/smb.conf" "$ROOT/etc/samba/smb.conf"
-cp "$STAGE/copyparty.conf" "$ROOT/etc/copyparty.conf"
-cp "$STAGE/dnsmasq-eth0.conf" "$ROOT/etc/dnsmasq-eth0.conf"
-rm -f "$ROOT/var/cache/samba/"*.tdb "$ROOT/var/cache/samba/msg.lock/"* "$ROOT/var/lib/samba/msg.sock/"* 2>/dev/null || true
-cp "$STAGE/nas_services.sh" "$STAGE/ethernet_role.sh" "$STAGE/openspeedtest_guard.sh" "$BASE/scripts/"
-chmod 0755 "$BASE/scripts/"*.sh
-mkdir -p "$ROOT/proc" "$ROOT/sys" "$ROOT/dev/pts" "$ROOT/run" "$ROOT/mnt/nas" "$ROOT/var/log"
-echo "Device payload installed"
+for file in nas-services.rc ethernet-role.rc openspeedtest-autostart.rc; do backup_file "/system/etc/init/$file"; done
+for target in "$ROOT/etc/copyparty-base.conf" "$ROOT/etc/copyparty.conf" "$ROOT/etc/samba/smb.conf" \
+    "$ROOT/etc/samba/usb-shares.conf" "$ROOT/etc/nginx/nas-portal.conf" "$ROOT/etc/avahi/avahi-daemon.conf" \
+    "$ROOT/etc/nas-ssh/ssh_host_ed25519_key" "$ROOT/etc/nas-script-dir" "$ROOT/usr/local/bin/usb-share-ready" \
+    "$ROOT/opt/nas-portal/index.html" "$ROOT/opt/nas-portal/storage.html" "$BASE/boot-mode" \
+    /data/adb/service.d/rk3399-nas.sh /data/data/org.primftpd/shared_prefs/org.primftpd_preferences.xml; do
+    backup_file "$target"
+done
+chmod 600 "$BACKUP"/*
+. "$STAGE/service-control.sh"
+# Restore only the files this installer touches if a later step fails.
+trap 'code=$?; trap - EXIT; if [ "$code" -ne 0 ]; then echo "Upgrade failed; restoring $BACKUP"; sh "$STAGE/rollback.sh" "$BACKUP" || echo "ERROR: automatic rollback failed; backup is $BACKUP"; fi; exit "$code"' EXIT
+stop_nas
+am force-stop org.primftpd 2>/dev/null || true
+for file in $PY_FILES; do cp "$STAGE/$file" "$ROOT/opt/$file"; done
+mkdir -p "$ROOT/usr/local/bin" "$ROOT/etc/nginx"
+cp "$STAGE/usb-share-ready" "$ROOT/usr/local/bin/usb-share-ready"
+chmod 755 "$ROOT/usr/local/bin/usb-share-ready"
+cp "$STAGE/nas-portal.html" "$ROOT/opt/nas-portal/index.html"
+cp "$STAGE/nas-storage.html" "$ROOT/opt/nas-portal/storage.html"
+cp "$STAGE/nas-portal-nginx.conf" "$ROOT/etc/nginx/nas-portal.conf"
+chroot "$ROOT" /usr/bin/python3 /opt/prepare-nas.py "/proc/1/root$STAGE/smb.conf"
+for file in $SH_FILES; do cp "$STAGE/$file" "$BASE/scripts/$file"; done
+chmod 755 "$BASE/scripts/"*.sh
+chroot "$ROOT" /usr/bin/python3 /opt/nas-volumes.py
+chroot "$ROOT" /usr/bin/testparm -s >/dev/null
+chroot "$ROOT" /usr/sbin/nginx -t -c /etc/nginx/nas-portal.conf
+sh "$STAGE/install_boot.sh"
+start_nas
+healthy=0
+for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    sleep 2
+    if sh "$STAGE/status.sh" --health > "$BACKUP/health.log" 2>&1; then healthy=1; break; fi
+done
+cat "$BACKUP/health.log"
+[ "$healthy" = 1 ] || { echo 'ERROR: service startup timed out'; exit 32; }
+echo "UPGRADE_BACKUP=$BACKUP"
+echo 'Upgrade complete; no storage was formatted and no reboot was requested.'
