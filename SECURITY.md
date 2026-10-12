@@ -1,5 +1,7 @@
 # 安全说明
 
+0.3.0 首次安装生成随机文件服务密码与独立 SFTP 密钥。密码存入电脑 `credentials.txt`，设置当前 Windows 用户专用权限；临时凭据通过私有 staging 文件传递，结束后清理，不放入命令行。该文件和设备备份不可公开。升级继续保留原账号。
+
 0.2.0 升级保留设备原账号，不将真实密码或密钥打包到仓库。legacy/v0.1.0/ 的 admin/admin 是历史示例，新升级入口不写入它。文件服务和控制服务使用独立凭据，仅用于可信局域网。
 
 旧 Primitive FTPd 7.5 有已知导出组件授权问题，官方在 8.2 修复，见 [上游公告](https://github.com/wolpi/prim-ftpd/security/advisories/GHSA-j72x-x52h-247j)。新版使用 Copyparty 的 FTP / SFTP 并关闭旧 App 自启，不发布该 APK。

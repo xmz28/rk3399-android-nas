@@ -36,7 +36,10 @@ stop_nas() {
 start_nas() {
     if [ "$(cat "$BASE/boot-mode" 2>/dev/null)" = magisk ]; then
         nohup /system/bin/sh "$BASE/scripts/nas_services.sh" </dev/null >"$ROOT/var/log/nas-service.log" 2>&1 &
-    else
+    elif [ -n "$(getprop init.svc.nas_services)" ]; then
         start nas_services
+    else
+        # init reads new rc files at reboot. Run the same service for this session.
+        nohup /system/bin/sh "$BASE/scripts/nas_services.sh" </dev/null >"$ROOT/var/log/nas-service.log" 2>&1 &
     fi
 }

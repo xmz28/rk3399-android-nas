@@ -1,5 +1,15 @@
 # 发布记录
 
+## 0.3.0-rc1 — 2026-10-12
+
+- 增加联网首次安装、官方资源校验、干净 Alpine 依赖构建、随机密码和独立 SFTP 身份。
+- 拒绝覆盖已有 NAS；保留失败安装状态，密码通过临时文件传递。
+- 自动准备官方 ADB；Release 附适配控制 APK 与 OpenSpeedTest 网页资源。
+- 新装测速使用 Nginx，无需第三方 Android 测速 APK。
+- 控制 App 保留新版 watcher 和存储后端，watcher 遵循 Samba、iperf、mDNS 开关。
+- 10 项主机 Python 测试、独立 chroot 的 SMB / FTP / SFTP / HTTP 读取通过。
+- 空白设备完整安装、失败恢复、重启及 Magisk 流程尚未实机验收。
+
 ## 0.2.0 — 2026-10-12
 
 - 整合多盘 SMB / FTP / SFTP / HTTP / WebDAV、固定 USB 编号与安全卸载。

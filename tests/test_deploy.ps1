@@ -36,6 +36,12 @@ try {
     if ($taskTrace -notmatch 'sh /data/local/tmp/rk3399-deploy-v2/preflight.sh') { throw 'Preflight was not run.' }
     if ($taskTrace -match 'install_device|reboot| install ') { throw 'CheckOnly triggered installation.' }
     'CHECK_ONLY_SKIPS_INSTALL=PASS'
+    [IO.File]::WriteAllText($taskLog,'')
+    & (Join-Path $taskSource 'deploy.ps1') -Serial TESTBOARD -AdbPath $taskFake -Fresh -CheckOnly
+    $taskTrace = Get-Content $taskLog -Raw
+    if ($taskTrace -notmatch 'preflight.sh --fresh') { throw 'Fresh inspection used upgrade checks.' }
+    if ($taskTrace -match 'install_fresh|credentials.json| install |reboot') { throw 'Fresh CheckOnly triggered installation or credential transfer.' }
+    'FRESH_CHECK_ONLY_SKIPS_INSTALL=PASS'
 } finally {
     $env:RK_NAS_TEST_ADB_LOG = $taskOldLog
     $env:RK_NAS_TEST_ADB_MODE = $taskOldMode

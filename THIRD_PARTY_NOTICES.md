@@ -1,6 +1,6 @@
 # 第三方依赖说明
 
-本仓库仅发布自有部署脚本、配置、网页与文档，不包含第三方二进制、第三方源码或设备备份。MIT 许可仅适用于本仓库自有内容。
+Git 仓库发布自有部署源码。0.3.0 Release 另附 Copyparty SFX、OpenSpeedTest 静态网页及自有控制 APK；保留所附资源的许可文件。Alpine Linux 软件包与 Android Platform Tools 从官方源下载，不包含在公开 ZIP 中。自有 MIT 许可不替代第三方许可。
 
 | 依赖 | 作用 | 上游与许可参考 |
 | --- | --- | --- |
@@ -16,4 +16,6 @@
 | iperf3 | 网络吞吐测试 | [上游](https://github.com/esnet/iperf)，以所用包的许可声明为准 |
 | Paramiko | SFTP 与密钥转换 | [上游](https://github.com/paramiko/paramiko)，以所用包的许可声明为准 |
 
-这些依赖由用户自行准备。未来若分发 APK、ADB 或包含 Linux 软件包的 rootfs，必须保留第三方声明，并依据对应版本的许可提供所需材料；本次没有审核或授权完整二进制包的再分发。
+Copyparty 固定为 1.20.25，其 SFX 包含内嵌依赖声明，完整源码见 [固定版本](https://github.com/9001/copyparty/tree/v1.20.25)。OpenSpeedTest 网页固定为 [f4263546](https://github.com/openspeedtest/Speed-Test/tree/f4263546f50694a154fdd27a03000390949068df)，保留 License.md；30 MiB downloading 数据在安装时生成，HTML / JS 资源保持上游内容。其 Roboto 字体使用 Apache License 2.0，资源包另附字体许可。
+
+Linux 依赖由设备向 Alpine 仓库获取，遵循各包许可；已安装软件包的版本、许可和构建提交记录在 `/usr/share/rk3399-nas/apk-installed.txt`，构建源码可在 [Alpine aports](https://gitlab.alpinelinux.org/alpine/aports) 对应提交查询。请勿把本地镜像当成已完成再分发许可整理的公开离线包。

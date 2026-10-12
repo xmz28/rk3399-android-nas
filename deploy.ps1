@@ -5,6 +5,7 @@ param(
     [switch]$CheckOnly,
     [switch]$VerifyOnly,
     [switch]$InstallControl,
+    [switch]$Fresh,
     [switch]$Uninstall,
     [string]$RollbackBackup,
     [switch]$Reboot,
@@ -15,11 +16,17 @@ $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Adb = Join-Path $Here 'tools\adb.exe'
 if ($AdbPath) { $Adb = $AdbPath }
 if (-not (Test-Path -LiteralPath $Adb)) {
+    $sdkAdb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
     $command = Get-Command adb -ErrorAction SilentlyContinue
-    if (-not $command) { throw 'Prepare Windows Platform Tools in tools/ or add adb to PATH.' }
-    $Adb = $command.Source
+    if (Test-Path -LiteralPath $sdkAdb) { $Adb = $sdkAdb }
+    elseif ($command) { $Adb = $command.Source }
+    else {
+        & (Join-Path $Here 'prepare-resources.ps1') -ToolsOnly
+        $Adb = Join-Path $Here 'tools\platform-tools\adb.exe'
+    }
 }
 if ($Reboot -and $NoReboot) { throw 'Choose either -Reboot or -NoReboot.' }
+if ($Fresh -and ($VerifyOnly -or $Uninstall -or $RollbackBackup)) { throw '-Fresh cannot be combined with verify, uninstall or rollback.' }
 if (([int][bool]$CheckOnly + [int][bool]$VerifyOnly + [int][bool]$Uninstall + [int][bool]$RollbackBackup) -gt 1) {
     throw 'Choose one of -CheckOnly, -VerifyOnly, -Uninstall, or -RollbackBackup.'
 }
@@ -58,6 +65,12 @@ function Check-Sources {
 Check-Sources
 if ($InstallControl -and -not (Test-Path -LiteralPath (Join-Path $Here 'payload\rk3399-control.apk'))) {
     throw 'Missing payload/rk3399-control.apk. Prepare your trusted RK3399 Control APK first.'
+}
+if ($InstallControl) {
+    $resourceLock = Get-Content (Join-Path $Here 'resources.json') -Raw | ConvertFrom-Json
+    if ((Get-FileHash (Join-Path $Here 'payload\rk3399-control.apk')).Hash.ToLower() -ne $resourceLock.control.sha256) {
+        throw 'Control APK does not match this release. Build a trusted APK and update resources.json before installing.'
+    }
 }
 if (-not $Serial) {
     $devices = @(Invoke-Adb -Arguments @('devices') | ForEach-Object {
@@ -102,13 +115,67 @@ if ($Uninstall) {
 }
 Invoke-Adb -Arguments @('-s',$Serial,'push',(Join-Path $Here 'device\preflight.sh'),"$Stage/preflight.sh") | Out-Null
 $preflightCommand = "sh $Stage/preflight.sh"
-if ($InstallControl) { $preflightCommand += ' --control' }
+if ($Fresh) { $preflightCommand += ' --fresh' }
+elseif ($InstallControl) { $preflightCommand += ' --control' }
 Invoke-Root -Command $preflightCommand
 if ($CheckOnly) { exit 0 }
+if ($Fresh) {
+    $image = Join-Path $Here 'payload\alpine-nas-clean.tar.gz'
+    $imageManifest = Join-Path $Here 'payload\rootfs.sha256'
+    $onlineBuild = -not (Test-Path $image)
+    & (Join-Path $Here 'prepare-resources.ps1') -SpeedOnly
+    if ($onlineBuild) {
+        & (Join-Path $Here 'prepare-resources.ps1')
+        $image = Join-Path $Here 'payload\alpine-minirootfs.tar.gz'
+        $imageManifest = Join-Path $Here 'payload\base.sha256'
+    }
+    if (-not (Test-Path $imageManifest)) { throw 'Missing rootfs checksum.' }
+    $expectedImage = (Get-Content $imageManifest -Raw).Trim()
+    if ($expectedImage -notmatch '^[0-9a-f]{64}$' -or (Get-FileHash $image).Hash.ToLower() -ne $expectedImage) { throw 'Clean rootfs checksum mismatch.' }
+    if (Test-Path (Join-Path $Here 'credentials.txt')) { throw 'credentials.txt already exists; preserve it and use a new package directory for another fresh installation.' }
+}
 foreach ($file in Get-ChildItem -LiteralPath (Join-Path $Here 'device') -File) {
     Invoke-Adb -Arguments @('-s',$Serial,'push',$file.FullName,"$Stage/$($file.Name)") | Out-Null
 }
-Invoke-Root -Command "sh $Stage/install_device.sh"
+if ($Fresh) {
+    $random = New-Object byte[] 24
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($random) } finally { $rng.Dispose() }
+    $password = [Convert]::ToBase64String($random).Replace('+','-').Replace('/','_')
+    $credentialTemp = Join-Path ([IO.Path]::GetTempPath()) ('rk3399-credential-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        [IO.File]::WriteAllText($credentialTemp,(@{password=$password} | ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+        # Save before device initialization, so failed installations cannot lose their password.
+        $credentialPath = Join-Path $Here 'credentials.txt'
+        [IO.File]::WriteAllText($credentialPath,"File-service username: admin`nFile-service password: $password`nTarget: $Serial`nKeep this file private. Control App uses its own password.`n",[Text.UTF8Encoding]::new($false))
+        if ($env:OS -eq 'Windows_NT') {
+            & icacls $credentialPath /inheritance:r /grant:r "$([Security.Principal.WindowsIdentity]::GetCurrent().Name):(F)" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to protect credentials.txt permissions.' }
+            & icacls $credentialTemp /inheritance:r /grant:r "$([Security.Principal.WindowsIdentity]::GetCurrent().Name):(F)" | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to protect temporary credential permissions.' }
+        }
+        Invoke-Root -Command "chmod 700 $Stage" | Out-Null
+        if ($onlineBuild) {
+            Invoke-Adb -Arguments @('-s',$Serial,'push',(Join-Path $Here 'payload/copyparty-sfx.py'),"$Stage/copyparty-sfx.py") | Out-Null
+            Invoke-Adb -Arguments @('-s',$Serial,'push',(Join-Path $Here 'build-rootfs.sh'),"$Stage/build-rootfs.sh") | Out-Null
+            Invoke-Adb -Arguments @('-s',$Serial,'push',$image,"$Stage/alpine-minirootfs.tar.gz") | Out-Null
+        } else {
+            Invoke-Adb -Arguments @('-s',$Serial,'push',$image,"$Stage/alpine-nas-clean.tar.gz") | Out-Null
+        }
+        Invoke-Adb -Arguments @('-s',$Serial,'push',$imageManifest,"$Stage/rootfs.sha256") | Out-Null
+        Invoke-Adb -Arguments @('-s',$Serial,'push',(Join-Path $Here 'payload/openspeedtest.tar.gz'),"$Stage/openspeedtest.tar.gz") | Out-Null
+        Invoke-Adb -Arguments @('-s',$Serial,'push',(Join-Path $Here 'payload/speedtest.sha256'),"$Stage/speedtest.sha256") | Out-Null
+        Invoke-Adb -Arguments @('-s',$Serial,'push',$credentialTemp,"$Stage/credentials.json") | Out-Null
+        $freshCommand = "sh $Stage/install_fresh.sh"
+        if ($onlineBuild) { $freshCommand += ' --online' }
+        Invoke-Root -Command $freshCommand
+        Write-Host 'Your generated file-service password is saved in credentials.txt. Keep it private.'
+    } finally {
+        if (Test-Path -LiteralPath $credentialTemp) { Remove-Item -LiteralPath $credentialTemp }
+        Invoke-Root -Command "rm -f $Stage/credentials.json" | Out-Null
+        $password = $null
+    }
+} else { Invoke-Root -Command "sh $Stage/install_device.sh" }
 if ($InstallControl) {
     Invoke-Adb -Arguments @('-s',$Serial,'install','-r',(Join-Path $Here 'payload\rk3399-control.apk'))
     Write-Host 'Open RK3399 Control, grant root, and start its authenticated remote service for /storage/.'

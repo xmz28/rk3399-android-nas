@@ -38,6 +38,7 @@ for target in "$ROOT/etc/copyparty-base.conf" "$ROOT/etc/copyparty.conf" "$ROOT/
     "$ROOT/etc/samba/usb-shares.conf" "$ROOT/etc/nginx/nas-portal.conf" "$ROOT/etc/avahi/avahi-daemon.conf" \
     "$ROOT/etc/nas-ssh/ssh_host_ed25519_key" "$ROOT/etc/nas-script-dir" "$ROOT/usr/local/bin/usb-share-ready" \
     "$ROOT/opt/nas-portal/index.html" "$ROOT/opt/nas-portal/storage.html" "$BASE/boot-mode" \
+    "$ROOT/etc/nas-package-version" \
     /data/adb/service.d/rk3399-nas.sh /data/data/org.primftpd/shared_prefs/org.primftpd_preferences.xml; do
     backup_file "$target"
 done
@@ -61,6 +62,7 @@ chroot "$ROOT" /usr/bin/python3 /opt/nas-volumes.py
 chroot "$ROOT" /usr/bin/testparm -s >/dev/null
 chroot "$ROOT" /usr/sbin/nginx -t -c /etc/nginx/nas-portal.conf
 sh "$STAGE/install_boot.sh"
+echo 0.3.0 > "$ROOT/etc/nas-package-version"
 start_nas
 healthy=0
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do

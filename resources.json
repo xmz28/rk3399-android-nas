@@ -1,0 +1,21 @@
+{
+  "alpine": {
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/aarch64/alpine-minirootfs-3.22.6-aarch64.tar.gz",
+    "sha256": "821565fa8f3953eefd12497b166b4b50add2f7c57fb312e75862f5867e06fefe"
+  },
+  "copyparty": {
+    "url": "https://github.com/9001/copyparty/releases/download/v1.20.25/copyparty-sfx.py",
+    "sha256": "fed92d38ae9efe99b453a9d48020ba860758cc7b3207a8909e9495ffb600cd1f"
+  },
+  "platformTools": {
+    "url": "https://dl.google.com/android/repository/platform-tools_r37.0.1-win.zip",
+    "sha256": "45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99"
+  },
+  "control": {
+    "sha256": "328c8a0945daa12dcf03ff513f9fdadd4d88c84dc6766cc8514142530a13e387"
+  },
+  "speedtest": {
+    "url": "https://github.com/xmz28/rk3399-android-nas/releases/download/v0.3.0-rc1/openspeedtest.tar.gz",
+    "sha256": "c7a0f0d4e898f4427c4308204d1a14e61385472f3e2e3fc2e04efbe4535c34d0"
+  }
+}

@@ -23,6 +23,7 @@ port_open() {
 }
 
 start_samba() {
+    [ "$(cat /data/local/rk3399-control/enabled/samba 2>/dev/null)" != 0 ] || return 0
     port_open 445 || chroot "$ROOT" /usr/sbin/smbd -D -s /etc/samba/smb.conf
 }
 
@@ -54,14 +55,18 @@ start_portal() {
 }
 
 start_iperf3() {
-    if ! port_open 5201; then
-        chroot "$ROOT" /usr/bin/iperf3 -s \
+    [ "$(cat /data/local/rk3399-control/enabled/iperf 2>/dev/null)" != 0 ] || return 0
+    IPERF_PORT=$(cat /data/local/rk3399-control/config/iperf_port 2>/dev/null)
+    case "$IPERF_PORT" in ''|*[!0-9]*) IPERF_PORT=5201 ;; esac
+    if ! port_open "$IPERF_PORT"; then
+        chroot "$ROOT" /usr/bin/iperf3 -s -p "$IPERF_PORT" \
             >"$ROOT/var/log/iperf3.log" 2>&1 &
         echo $! > "$ROOT/run/iperf3.pid"
     fi
 }
 
 start_mdns() {
+    [ "$(cat /data/local/rk3399-control/enabled/mdns 2>/dev/null)" != 0 ] || return 0
     AVAHI_PID=$(cat "$ROOT/run/avahi-daemon/pid" 2>/dev/null)
     if [ -z "$AVAHI_PID" ] || ! kill -0 "$AVAHI_PID" 2>/dev/null; then
         rm -f "$ROOT/run/avahi-daemon/pid"

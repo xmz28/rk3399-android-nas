@@ -1,4 +1,7 @@
 # Local offline dependencies; never publish device archives or binaries.
+/build/
+/dist/
+/credentials.txt
 /payload/*
 !/payload/README.md
 /tools/*
