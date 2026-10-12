@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <boolean name="startOnBootPref" value="true" />
+    <boolean name="wakelockPref" value="true" />
+    <boolean name="anonymousLoginPref" value="false" />
+    <boolean name="chooseIpToBindToPref" value="false" />
+    <boolean name="rootCopyFilesPref" value="false" />
+    <string name="startDirPref">/storage/emulated/0/NAS</string>
+    <string name="portPref">12345</string>
+    <string name="securePortPref">1234</string>
+    <string name="userNamePref">admin</string>
+    <string name="ftpPassivePortsPref">5678</string>
+    <string name="idleTimeoutServerStopPref">0</string>
+    <string name="whichServerToStartPref">0</string>
+    <string name="storageTypePref">1</string>
+    <string name="loggingPref">0</string>
+    <set name="hostkeyAlgosPref"><string>ed25519</string></set>
+</map>

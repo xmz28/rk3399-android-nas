@@ -1,0 +1,9 @@
+on property:sys.boot_completed=1
+    start nas_services
+
+service nas_services /system/bin/sh /system/bin/nas_services.sh
+    class late_start
+    user root
+    group root shell inet sdcard_rw
+    seclabel u:r:init:s0
+    disabled
