@@ -12,7 +12,7 @@
     "sha256": "45f4d63113e895ebde0c90f194099a4676b6ac653bd28d54314a9e022bbc1a99"
   },
   "control": {
-    "sha256": "328c8a0945daa12dcf03ff513f9fdadd4d88c84dc6766cc8514142530a13e387"
+    "sha256": "38d23773ac933bfd8c8ac47dd2b5a1006379f53391ca9ac4971319093ff29d85"
   },
   "speedtest": {
     "url": "https://github.com/xmz28/rk3399-android-nas/releases/download/v0.3.0-rc1/openspeedtest.tar.gz",

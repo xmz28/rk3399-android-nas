@@ -2,15 +2,15 @@
 
 将已 root 的 ARM64 RK3399 Android 设备用作多盘 NAS，提供 SMB、FTP、SFTP、网页文件管理 / WebDAV、测速和 USB 存储管理。
 
-当前版本：`0.3.0-rc1`，联网首次安装候选版。
+当前源码版本：`0.3.1-rc1`，联网首次安装与升级候选版（2026-10-15）。本轮更新源码，已有 `0.3.0-rc1` Release 附件保持原版本，尚未发布新版安装 ZIP。
 
 > 已在 RK3399 独立临时 chroot 验证账号初始化和 SMB / FTP / SFTP / HTTP 文件读取。空白设备完整安装、失败恢复、重启自启及 Magisk 路径仍待验收。
 
 ## 快速开始
 
-1. 从 [Releases](https://github.com/xmz28/rk3399-android-nas/releases) 下载 `rk3399-android-nas-0.3.0-rc1-online.zip` 并解压。
+1. 获取本仓库 `main` 分支的当前源码。现有 [Releases](https://github.com/xmz28/rk3399-android-nas/releases) 中 `0.3.0-rc1` 安装包不包含本轮更新；使用新版功能请使用当前源码及匹配的控制 APK。
 2. 开启 USB 调试；设备须具备 root、BusyBox，以及可写 system 或可用 Magisk。电脑与设备均须能访问官方下载源。
-3. 新设备双击 `首次安装.bat`：准备 ADB、校验官方基础镜像、安装 Alpine 依赖、生成账号、配置服务和启动钩子、安装配套控制 App。
+3. 新设备执行 `deploy.ps1 -Fresh`：准备 ADB、校验官方基础镜像、安装 Alpine 依赖、生成账号、配置服务和启动钩子。准备好匹配的 APK 后，可双击 `首次安装.bat` 安装配套控制 App。
 4. 文件账号为 `admin`，随机密码保存在解压目录的 `credentials.txt`。打开控制 App、授予 root 并启用远程控制，才能使用存储管理页面；控制密码独立设置。
 
 首次安装拒绝覆盖 `/data/local/alpine-nas`。已有 NAS 使用 `一键部署.bat` 升级，保留账号、SFTP 身份、磁盘编号与数据。
@@ -24,7 +24,7 @@
 
 自动选择唯一 RK3399，拒绝普通手机；多个 RK3399 时需加 `-Serial <ADB序列号>`。默认不重启，可显式加 `-Reboot`。不自动 root、刷机或 remount。
 
-源码 ZIP 不含 APK；完整候选包通过 Release 下载。公开包为联网安装包，Linux 环境在设备上由官方 Alpine 仓库构建。详见 [使用说明](docs/使用说明.md) 和 [资源准备](docs/离线资源准备.md)。
+源码 ZIP 不含 APK，`resources.json` 记录本轮控制 App 构建的 SHA-256。Linux 环境在设备上由官方 Alpine 仓库构建；已有 NAS 升级前须准备新增的 OpenSSH、sudo、wsdd 依赖。详见 [使用说明](docs/使用说明.md) 和 [资源准备](docs/离线资源准备.md)。
 
 ## 功能与入口
 
@@ -37,11 +37,14 @@
 | Samba | `\\a.local\NAS`、`\\a.local\USB1` 等 |
 | FTP | `ftp://a.local:12345` |
 | SFTP | `a.local:1234` |
+| Alpine SSH 管理 | `ssh admin@a.local`，端口 22 |
 | iperf3 | `a.local:5201` |
 
 无法解析 a.local 时使用实际 IP。升级保留 Copyparty 自定义端口与 SMB 名称。内置共享为 `/data/media/0/NAS`，每个 USB 卷独立共享，支持热插拔、固定编号、只读标记、安全弹出和 FAT 格式化。部署本身不执行格式化。
 
 新装测速由 Nginx 托管 OpenSpeedTest 网页，无需 Android 测速 APK；升级保留原服务。存储网页通过控制 App 的 8765 认证接口工作，文件服务和控制服务使用两套密码。
+
+本轮合入上传后 Android MTP 索引同步、Copyparty 动态共享重载修复、Windows WSD 与 Bonjour SMB/SSH 发现。SSH 使用 NAS 配置中的 admin 密码，允许密码认证后执行 `sudo -i`；只允许 admin，禁止 root 直接登录。SSH 22 与原 SFTP 1234 各自保留独立主机密钥。使用范围、密码同步和验证边界见 [新增服务说明](docs/发现与SSH及MTP.md)。
 
 ## 配套 App
 
@@ -68,9 +71,9 @@ SHA256SUMS.txt           当前部署源码校验
 
 ## 验证状态
 
-- 10 项 Python 主机测试、ADB 模拟检查及语法检查通过。
+- 本轮 Python 主机测试、ADB 模拟检查、源码校验及脚本语法检查通过；具体范围见 CHANGELOG。
 - 独立 chroot 的 SMB、FTP、SFTP、HTTP 实际读取通过；新装测速后端另行检查。
-- 没有替换现有 NAS、重启或格式化。空白设备完整流程、失败恢复、重启及 Magisk 路径仍待验收。
+- 本轮没有替换现有 NAS、重启或格式化。开发目录旧实机记录不构成本安装器的重新验收；空白设备完整流程、失败恢复、重启及 Magisk 路径仍待验收。
 - 升级保留原网口与测速启动方式。端口健康检查不代表全部协议和 USB 操作通过。
 
 版本记录见 [CHANGELOG](CHANGELOG.md)。只在可信局域网使用，参见 [安全说明](SECURITY.md)。

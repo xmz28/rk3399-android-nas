@@ -1,5 +1,7 @@
 # 安全说明
 
+0.3.1 增加 Alpine SSH 22 端口，只允许 admin，禁止 root 直接登录；admin 可用密码执行 sudo。Unix 密码在安装时从 NAS 配置同步，后续与 Samba / Copyparty 各自维护，控制服务密码仍独立。SSH 和原 SFTP 各自保留独立主机密钥。sudo 仅对 root 拥有的可执行文件单独 bind mount 启用 suid，Android /data 的 nosuid 保持不变；chroot 不构成针对特权管理员的安全隔离。WSD / Bonjour 仅用于公告，不能替代协议认证。
+
 0.3.0 首次安装生成随机文件服务密码与独立 SFTP 密钥。密码存入电脑 `credentials.txt`，设置当前 Windows 用户专用权限；临时凭据通过私有 staging 文件传递，结束后清理，不放入命令行。该文件和设备备份不可公开。升级继续保留原账号。
 
 0.2.0 升级保留设备原账号，不将真实密码或密钥打包到仓库。legacy/v0.1.0/ 的 admin/admin 是历史示例，新升级入口不写入它。文件服务和控制服务使用独立凭据，仅用于可信局域网。

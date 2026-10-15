@@ -15,6 +15,9 @@ Git 仓库发布自有部署源码。0.3.0 Release 另附 Copyparty SFX、OpenSp
 | Avahi | mDNS 发现 | [上游](https://github.com/avahi/avahi)，以所用包的许可声明为准 |
 | iperf3 | 网络吞吐测试 | [上游](https://github.com/esnet/iperf)，以所用包的许可声明为准 |
 | Paramiko | SFTP 与密钥转换 | [上游](https://github.com/paramiko/paramiko)，以所用包的许可声明为准 |
+| OpenSSH | Alpine SSH 远程管理 | [上游](https://www.openssh.com/)，以所用 Alpine 包的许可声明为准 |
+| sudo | Alpine admin 提权 | [上游](https://www.sudo.ws/)，以所用 Alpine 包的许可声明为准 |
+| wsdd | Windows WSD 发现 | [上游](https://github.com/christgau/wsdd)，以所用 Alpine 包的许可声明为准 |
 
 Copyparty 固定为 1.20.25，其 SFX 包含内嵌依赖声明，完整源码见 [固定版本](https://github.com/9001/copyparty/tree/v1.20.25)。OpenSpeedTest 网页固定为 [f4263546](https://github.com/openspeedtest/Speed-Test/tree/f4263546f50694a154fdd27a03000390949068df)，保留 License.md；30 MiB downloading 数据在安装时生成，HTML / JS 资源保持上游内容。其 Roboto 字体使用 Apache License 2.0，资源包另附字体许可。
 

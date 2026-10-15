@@ -7,7 +7,7 @@ case "$(getprop ro.product.cpu.abi)" in arm64-v8a|aarch64) ;; *) echo 'ERROR: AR
 if [ "${1:-}" = --fresh ]; then
     [ ! -e "$ROOT" ] || { echo 'ERROR: existing Alpine directory; use upgrade, never overwrite'; exit 13; }
     command -v busybox >/dev/null 2>&1 || { echo 'ERROR: BusyBox required for verified gzip extraction'; exit 15; }
-    for port in 80 445 3923 12345 1234 5201; do
+    for port in 22 80 445 3923 12345 1234 5201; do
         if netstat -lnt 2>/dev/null | grep -q ":$port "; then
             echo "ERROR: fresh installation port $port already in use"; exit 16
         fi
@@ -26,9 +26,16 @@ if [ "${1:-}" = --fresh ]; then
 fi
 [ -d "$ROOT" ] || { echo 'ERROR: install and initialize Alpine NAS first; this package upgrades existing NAS'; exit 13; }
 [ -d "$ROOT/proc/1/root" ] || { echo 'ERROR: existing NAS proc mount is not ready; start its service first'; exit 14; }
-for executable in /usr/bin/python3 /usr/sbin/smbd /usr/bin/testparm /usr/bin/smbcontrol /usr/sbin/nginx /usr/sbin/avahi-daemon /usr/bin/iperf3 /usr/bin/awk; do
-    [ -x "$ROOT$executable" ] || { echo "ERROR: missing Alpine dependency $executable"; exit 15; }
+for executable in /usr/bin/python3 /usr/sbin/smbd /usr/bin/testparm /usr/bin/smbcontrol /usr/sbin/nginx /usr/sbin/avahi-daemon /usr/bin/iperf3 /usr/bin/awk /usr/bin/wsdd /usr/sbin/sshd /usr/bin/ssh-keygen /usr/bin/sudo /usr/sbin/visudo /usr/sbin/chpasswd; do
+    [ -x "$ROOT$executable" ] || { echo "ERROR: missing Alpine dependency $executable; prepare openssh-server openssh-keygen sudo wsdd before upgrading"; exit 15; }
 done
+if netstat -lnt 2>/dev/null | grep -q ':22 '; then
+    ssh_pid=$(cat "$ROOT/run/nas-sshd.pid" 2>/dev/null || true)
+    case "$ssh_pid" in ''|*[!0-9]*|0|1) echo 'ERROR: SSH port 22 belongs to another service'; exit 16 ;; esac
+    [ "$(readlink "/proc/$ssh_pid/root")" = "$ROOT" ] && \
+        tr '\000' ' ' < "/proc/$ssh_pid/cmdline" | grep -q 'sshd' || \
+        { echo 'ERROR: SSH port 22 is not owned by the NAS SSH daemon'; exit 16; }
+fi
 chroot "$ROOT" /usr/bin/python3 -c 'import paramiko, ctypes, fcntl'
 [ -f "$ROOT/opt/copyparty-sfx.py" ] || { echo 'ERROR: Copyparty required'; exit 16; }
 [ -f "$ROOT/etc/avahi/avahi-daemon.conf" ] || { echo 'ERROR: configure Avahi first'; exit 17; }

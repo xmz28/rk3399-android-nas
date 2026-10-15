@@ -1,5 +1,14 @@
 # 发布记录
 
+## 0.3.1-rc1 — 2026-10-15（源码更新）
+
+- 从当前开发实现整合上传与 Android MTP 索引同步、Copyparty 动态共享重载修复，适配固定 SFX 1.20.25 的解包参数。
+- 增加 Windows WSD、Bonjour SMB/SSH 公告，以及 Alpine admin SSH / sudo 管理；保留原 1234 SFTP 身份和账号。
+- 首次安装增加 openssh-server、sudo、wsdd 依赖；已有环境先检查依赖，升级备份 Unix 账号、SSH 主机密钥、sudoers 及发现配置，失败时按清单恢复。
+- 补齐新增进程停止、sudo 文件挂载清理、SSH 端口冲突检查和健康检查；保留 App 开关、自定义端口及 init / Magisk 路径。
+- 同步配套 RK3399 Control APK 的本地资源与哈希，更新中文部署、文件系统和服务说明；Git 不包含 APK 或设备私有资源，旧 Release 附件不变。
+- 本轮 18 项主机 Python 测试、3 项 ADB 模拟检查、37 个部署文件的源码哈希及脚本语法检查通过；固定 Copyparty 1.20.25 的实际解包、修补及版本入口检查通过。没有执行真实设备安装、格式化或重启验收。
+
 ## 0.3.0-rc1 — 2026-10-12
 
 - 增加联网首次安装、官方资源校验、干净 Alpine 依赖构建、随机密码和独立 SFTP 身份。
